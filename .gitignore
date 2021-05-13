@@ -1,5 +1,6 @@
 data
 __pycache__
 *.egg-info
-
+venv
 .vscode
+
