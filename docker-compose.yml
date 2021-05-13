@@ -1,0 +1,15 @@
+version: "3"
+
+volumes:
+  couch_db:
+
+services:
+  couch_db:
+    image: "couchdb:3"
+    ports:
+      - 5984:5984
+    environment:
+      - COUCHDB_USER=pydeps
+      - COUCHDB_PASSWORD=pydeps
+    volumes:
+      - couch_db:/opt/couchdb/data
