@@ -11,13 +11,14 @@ package_names = [ link.text for link in soup.find_all('a') ]
 
 # %% Get Versions for Each Package
 
-import pydeps
 import asyncio
-import aiohttp
-from aiostream import stream, pipe, async_
-import contextlib
 import dataclasses
 from typing import Optional, Iterator
+
+import aiohttp
+from aiostream import stream, pipe, async_
+
+import pydeps
 
 @dataclasses.dataclass
 class PackageInfo:
