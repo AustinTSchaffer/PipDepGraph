@@ -43,7 +43,6 @@ async def db_doesnt_contain_record(db: aiocouch.database.Database, package_name:
 async def insert_record(db: aiocouch.database.Database, record: PackageInfo):
     doc = await db.create(
         id=record.name,
-        exists_ok=True,
         data=record.info,
     )
 
