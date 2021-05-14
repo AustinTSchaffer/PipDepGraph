@@ -13,3 +13,4 @@ services:
       - COUCHDB_PASSWORD=pydeps
     volumes:
       - couch_db:/opt/couchdb/data
+      - ./couchdb_local.ini:/opt/couchdb/etc/local.ini

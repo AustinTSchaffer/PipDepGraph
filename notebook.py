@@ -36,14 +36,18 @@ async def get_package_info(session: aiohttp.ClientSession, package_name: str) ->
     except Exception as e:
         return e, PackageInfo(package_name, {})
 
+async def db_doesnt_contain_record(db: aiocouch.database.Database, package_name: str) -> bool:
+    doc = aiocouch.document.Document(db, package_name)
+    return not await doc._exists()
+
 async def insert_record(db: aiocouch.database.Database, record: PackageInfo):
     doc = await db.create(
-        record.name,
+        id=record.name,
         exists_ok=True,
-        data=record.info
+        data=record.info,
     )
 
-    return await doc.save()
+    await doc.save()
 
 async def main():
     async with aiohttp.ClientSession() as session:
@@ -52,10 +56,11 @@ async def main():
 
             await (
                 stream.iterate(package_names)
+                | pipe.filter(async_(lambda name: db_doesnt_contain_record(db, name)))
                 | pipe.map(async_(lambda name: get_package_info(session, name)))
                 | pipe.filter(lambda result: not result[0])
                 | pipe.map(lambda result: result[1])
-                | pipe.map(async_(lambda record: insert_record(db, record)))
+                | pipe.action(async_(lambda record: insert_record(db, record)))
             )
 
 print("Fetching package info...")
