@@ -16,7 +16,7 @@ import dataclasses
 from typing import Optional, Iterator
 
 import aiohttp
-from aiostream import stream, pipe, async_
+import aiostream
 import aiocouch
 
 import pydeps
@@ -36,9 +36,9 @@ async def get_package_info(session: aiohttp.ClientSession, package_name: str) ->
     except Exception as e:
         return e, PackageInfo(package_name, {})
 
-async def db_doesnt_contain_record(db: aiocouch.database.Database, package_name: str) -> bool:
+async def db_contains_record(db: aiocouch.database.Database, package_name: str) -> bool:
     doc = aiocouch.document.Document(db, package_name)
-    return not await doc._exists()
+    return await doc._exists()
 
 async def insert_record(db: aiocouch.database.Database, record: PackageInfo):
     doc = await db.create(
@@ -53,14 +53,21 @@ async def main():
         async with aiocouch.CouchDB("http://localhost:5984", user="pydeps", password="pydeps") as couchdb:
             db = await couchdb.create("db", exists_ok=True)
 
-            await (
-                stream.iterate(package_names)
-                | pipe.filter(async_(lambda name: db_doesnt_contain_record(db, name)))
-                | pipe.map(async_(lambda name: get_package_info(session, name)))
-                | pipe.filter(lambda result: not result[0])
-                | pipe.map(lambda result: result[1])
-                | pipe.action(async_(lambda record: insert_record(db, record)))
-            )
+            package_name_stream = aiostream.stream.iterate(package_names)
+            async with package_name_stream.stream() as streamer:
+                async for package_name in streamer:
+                    if await db_contains_record(db, package_name):
+                        print(f"DB already contains package: {package_name}")
+                        continue
+
+                    error, package_info = await get_package_info(session, package_name)
+
+                    if error:
+                        print(f"Cant save package: {package_name}. Reason:", error)
+                        continue
+
+                    print(f"Inserting package into CouchDB: {package_name}")
+                    await insert_record(db, package_info)
 
 print("Fetching package info...")
 asyncio.run(main())
