@@ -9,8 +9,8 @@ services:
     ports:
       - 5984:5984
     environment:
-      - COUCHDB_USER=pydeps
-      - COUCHDB_PASSWORD=pydeps
+      - COUCHDB_USER=pipdepgraph
+      - COUCHDB_PASSWORD=pipdepgraph
     volumes:
       - couch_db:/opt/couchdb/data
       - ./couchdb_local.ini:/opt/couchdb/etc/local.ini

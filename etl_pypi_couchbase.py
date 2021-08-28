@@ -19,7 +19,7 @@ import aiohttp
 import aiostream
 import aiocouch
 
-import pydeps
+import pipdepgraph
 
 @dataclasses.dataclass
 class PackageInfo:
@@ -28,7 +28,7 @@ class PackageInfo:
 
 async def get_package_info(session: aiohttp.ClientSession, package_name: str) -> tuple[Optional[Exception], PackageInfo]:
     try:
-        package_info = await pydeps.get_package_info_async(
+        package_info = await pipdepgraph.get_package_info_async(
             session=session,
             package=package_name,
         )
@@ -50,7 +50,7 @@ async def insert_record(db: aiocouch.database.Database, record: PackageInfo):
 
 async def main():
     async with aiohttp.ClientSession() as session:
-        async with aiocouch.CouchDB("http://localhost:5984", user="pydeps", password="pydeps") as couchdb:
+        async with aiocouch.CouchDB("http://localhost:5984", user="pipdepgraph", password="pipdepgraph") as couchdb:
             db = await couchdb.create("db", exists_ok=True)
 
             package_name_stream = aiostream.stream.iterate(package_names)
