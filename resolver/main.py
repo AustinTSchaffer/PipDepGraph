@@ -1,3 +1,5 @@
+from pprint import pprint
+
 from pip._internal.resolution.resolvelib.resolver import Resolver
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.cli.req_command import RequirementCommand
@@ -7,15 +9,27 @@ from pip._internal.req import req_tracker, constructors
 from pip._internal.req.constructors import install_req_from_req_string
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.utils import temp_dir
+from pip._internal.resolution.resolvelib.provider import PipProvider
+from pip._vendor.resolvelib import Resolver as RLResolver
+from pip._internal.resolution.resolvelib.reporter import (
+    PipDebuggingReporter,
+    PipReporter,
+)
 
+# TODO: These will come into play at some point. Will need to iterate
+# over combinations of these.
 requirement_string = "boto3"
+platforms = []
+py_versions = []
+py_version_info = None
 
+#
+# Boilerplate Bonanza Below
+#
 requirement = install_req_from_req_string(
     req_string=requirement_string,
     user_supplied=True,
 )
-
-py_version_info = None
 
 install_command = InstallCommand(name="install", summary="Installs, but not really.", isolated=True)
 options, _ = install_command.parse_args([])
@@ -55,14 +69,22 @@ with req_tracker.get_requirement_tracker() as req_tracker_:
             py_version_info=py_version_info,
         )
 
-        test = resolver.resolve(
-            root_reqs=[
-                requirement,
-            ],
-            check_supported_wheels=None
+        collected = resolver.factory.collect_root_requirements([requirement])
+        provider = PipProvider(
+            factory=resolver.factory,
+            constraints=collected.constraints,
+            ignore_dependencies=resolver.ignore_dependencies,
+            upgrade_strategy=resolver.upgrade_strategy,
+            user_requested=collected.user_requested,
         )
 
-        print(repr(test))
-        print("Done.")
+        # TODO: This pulls in all dependencies recursively.
+        # We just want the top-level dependencies.
 
-# TODO: This pulls in all dependencies recursively. We just want the top-level dependencies.
+        rl_resolver = RLResolver(provider, PipReporter())
+        result = rl_resolver.resolve(
+            collected.requirements, max_rounds=1_000_000
+        )
+
+        pprint(result)
+        print("Done.")
