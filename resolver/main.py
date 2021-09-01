@@ -1,5 +1,3 @@
-from pprint import pprint
-
 from pip._internal.resolution.resolvelib.resolver import Resolver
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.cli.req_command import RequirementCommand
@@ -17,7 +15,8 @@ from pip._internal.resolution.resolvelib.reporter import (
 )
 
 # TODO: These will come into play at some point. Will need to iterate
-# over combinations of these.
+# over combinations of these. These are effectively the inputs.
+package_name = "boto3"
 requirement_string = "boto3"
 platforms = []
 py_versions = []
@@ -86,5 +85,15 @@ with req_tracker.get_requirement_tracker() as req_tracker_:
             collected.requirements, max_rounds=1_000_000
         )
 
-        pprint(result)
+        # Scrubs the results for the requirement info that's relevant to "package_name"
+        direct_dependency_requirement_info = []
+        for direct_dependency in result.graph.iter_children(package_name):
+            criterion = result.criteria[direct_dependency]
+            for req_info in criterion.information:
+                if req_info.parent.name == package_name:
+                    direct_dependency_requirement_info.append(req_info.requirement)
+
+        from pprint import pprint
+        pprint(direct_dependency_requirement_info)
+
         print("Done.")
