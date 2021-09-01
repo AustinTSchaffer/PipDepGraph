@@ -43,6 +43,7 @@ finder = install_command._build_package_finder(
 )
 
 with req_tracker.get_requirement_tracker() as req_tracker_:
+    # TODO: Fix tempdir stuff
     with temp_dir.global_tempdir_manager():
         temp_build_dir = temp_dir.TempDirectory("build", delete=True, globally_managed=True)
         temp_download_dir = temp_dir.TempDirectory("download", delete=True, globally_managed=True).path
