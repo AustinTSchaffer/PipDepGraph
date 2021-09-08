@@ -85,7 +85,7 @@ with req_tracker.get_requirement_tracker() as req_tracker_:
             wheel_cache=None,
             use_user_site=False,
             ignore_installed=True,
-            ignore_requires_python=False,
+            ignore_requires_python=True,
             py_version_info=py_version_info,
         )
 
@@ -163,9 +163,11 @@ with req_tracker.get_requirement_tracker() as req_tracker_:
                 continue
 
             for req_info in criterion.information:
-                if req_info.parent.name == package_name:
-                    direct_dependency_requirement_info.append(req_info.requirement)
+                direct_dependency_requirement_info.append(req_info.requirement)
 
+        # This is the point where this script can hand the resulting
+        # data off to another process or slap it into a database of some sort.
+        # TODO: What other metadata might be important apart from dep names/versions?
         from pprint import pprint
 
         pprint(direct_dependency_requirement_info)
