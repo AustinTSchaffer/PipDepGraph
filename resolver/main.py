@@ -1,31 +1,29 @@
-import sys
 import logging
+import sys
 
-root = logging.getLogger()
-root.setLevel(logging.INFO)
-
-handler = logging.StreamHandler(sys.stdout)
-handler.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-root.addHandler(handler)
-
-from pip._internal.resolution.resolvelib.resolver import Resolver
-from pip._internal.operations.prepare import RequirementPreparer
+from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.req_command import RequirementCommand
 from pip._internal.commands.install import InstallCommand
 from pip._internal.network.session import PipSession
-from pip._internal.req import req_tracker, constructors
+from pip._internal.operations.prepare import RequirementPreparer
+from pip._internal.req import constructors, req_tracker
 from pip._internal.req.constructors import install_req_from_req_string
-from pip._internal.cli.cmdoptions import make_target_python
-from pip._internal.utils import temp_dir
 from pip._internal.resolution.resolvelib.provider import PipProvider
+from pip._internal.resolution.resolvelib.reporter import (PipDebuggingReporter,
+                                                          PipReporter)
+from pip._internal.resolution.resolvelib.resolver import Resolver
+from pip._internal.utils import temp_dir
 from pip._vendor.resolvelib import Resolver as RLResolver
 from pip._vendor.resolvelib import resolvers as rl_resolvers
-from pip._internal.resolution.resolvelib.reporter import (
-    PipDebuggingReporter,
-    PipReporter,
-)
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+handler = logging.StreamHandler(sys.stdout)
+handler.setLevel(logging.INFO)
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 
 # TODO: These will come into play at some point. Will need to iterate
@@ -44,7 +42,9 @@ requirement = install_req_from_req_string(
     user_supplied=True,
 )
 
-install_command = InstallCommand(name="install", summary="Installs, but not really.", isolated=True)
+install_command = InstallCommand(
+    name="install", summary="Installs, but not really.", isolated=True
+)
 options, _ = install_command.parse_args([])
 pip_session = PipSession()
 
@@ -59,8 +59,13 @@ finder = install_command._build_package_finder(
 with req_tracker.get_requirement_tracker() as req_tracker_:
     # TODO: Fix tempdir stuff
     with temp_dir.global_tempdir_manager():
-        temp_build_dir = temp_dir.TempDirectory("build", delete=True, globally_managed=True)
-        temp_download_dir = temp_dir.TempDirectory("download", delete=True, globally_managed=True).path
+        temp_build_dir = temp_dir.TempDirectory(
+            "build", delete=True, globally_managed=True
+        )
+
+        temp_download_dir = temp_dir.TempDirectory(
+            "download", delete=True, globally_managed=True
+        ).path
 
         preparer: RequirementPreparer = InstallCommand.make_requirement_preparer(
             temp_build_dir=temp_build_dir,
@@ -104,11 +109,16 @@ with req_tracker.get_requirement_tracker() as req_tracker_:
                 amount of packages that the resolver needs to download.
                 """
                 return (
-                    True if name != self.package_name else
-                    super()._is_current_pin_satisfying(name, criterion)
+                    True
+                    if name != self.package_name
+                    else super()._is_current_pin_satisfying(name, criterion)
                 )
 
-        resolution = TopLevelRequirementResolution(package_name=package_name, provider=provider, reporter=PipDebuggingReporter())
+        resolution = TopLevelRequirementResolution(
+            package_name=package_name,
+            provider=provider,
+            reporter=PipDebuggingReporter(),
+        )
         state = resolution.resolve(collected.requirements, max_rounds=2)
         result = rl_resolvers._build_result(state)
 
@@ -121,6 +131,7 @@ with req_tracker.get_requirement_tracker() as req_tracker_:
                     direct_dependency_requirement_info.append(req_info.requirement)
 
         from pprint import pprint
+
         pprint(direct_dependency_requirement_info)
 
         print("Done.")
