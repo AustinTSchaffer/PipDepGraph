@@ -1,3 +1,15 @@
+import sys
+import logging
+
+root = logging.getLogger()
+root.setLevel(logging.INFO)
+
+handler = logging.StreamHandler(sys.stdout)
+handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+root.addHandler(handler)
+
 from pip._internal.resolution.resolvelib.resolver import Resolver
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.cli.req_command import RequirementCommand
@@ -14,6 +26,7 @@ from pip._internal.resolution.resolvelib.reporter import (
     PipDebuggingReporter,
     PipReporter,
 )
+
 
 # TODO: These will come into play at some point. Will need to iterate
 # over combinations of these. These are effectively the inputs.
@@ -95,7 +108,7 @@ with req_tracker.get_requirement_tracker() as req_tracker_:
                     super()._is_current_pin_satisfying(name, criterion)
                 )
 
-        resolution = TopLevelRequirementResolution(package_name=package_name, provider=provider, reporter=PipReporter())
+        resolution = TopLevelRequirementResolution(package_name=package_name, provider=provider, reporter=PipDebuggingReporter())
         state = resolution.resolve(collected.requirements, max_rounds=2)
         result = rl_resolvers._build_result(state)
 
