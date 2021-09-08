@@ -114,18 +114,53 @@ with req_tracker.get_requirement_tracker() as req_tracker_:
                     else super()._is_current_pin_satisfying(name, criterion)
                 )
 
+            def _add_to_criteria(self, criteria, requirement, parent):
+                """
+                Overrides rl_resolvers.Resolution._add_to_criteria to prevent the PipProvider
+                (self._p) from downloading information about packages that aren't the root
+                package that we care about. This reduces the total amount of packages that the
+                resolver needs to download.
+                """
+                if requirement.name == self.package_name:
+                    return super()._add_to_criteria(criteria, requirement, parent)
+
+                self._r.adding_requirement(requirement=requirement, parent=parent)
+
+                identifier = self._p.identify(requirement_or_candidate=requirement)
+                criterion = criteria.get(identifier)
+                if criterion:
+                    incompatibilities = list(criterion.incompatibilities)
+                else:
+                    incompatibilities = []
+
+                if criterion:
+                    information = list(criterion.information)
+                    information.append(rl_resolvers.RequirementInformation(requirement, parent))
+                else:
+                    information = [rl_resolvers.RequirementInformation(requirement, parent)]
+
+                criterion = rl_resolvers.Criterion(
+                    candidates=[],
+                    information=information,
+                    incompatibilities=incompatibilities,
+                )
+
+                criteria[identifier] = criterion
+
         resolution = TopLevelRequirementResolution(
             package_name=package_name,
             provider=provider,
             reporter=PipDebuggingReporter(),
         )
+
         state = resolution.resolve(collected.requirements, max_rounds=2)
-        result = rl_resolvers._build_result(state)
 
         # Scrubs the results for the requirement info that's relevant to "package_name"
         direct_dependency_requirement_info = []
-        for direct_dependency in result.graph.iter_children(package_name):
-            criterion = result.criteria[direct_dependency]
+        for name, criterion in state.criteria.items():
+            if name == package_name:
+                continue
+
             for req_info in criterion.information:
                 if req_info.parent.name == package_name:
                     direct_dependency_requirement_info.append(req_info.requirement)
