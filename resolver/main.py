@@ -9,6 +9,7 @@ from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.utils import temp_dir
 from pip._internal.resolution.resolvelib.provider import PipProvider
 from pip._vendor.resolvelib import Resolver as RLResolver
+from pip._vendor.resolvelib import resolvers as rl_resolvers
 from pip._internal.resolution.resolvelib.reporter import (
     PipDebuggingReporter,
     PipReporter,
@@ -17,7 +18,7 @@ from pip._internal.resolution.resolvelib.reporter import (
 # TODO: These will come into play at some point. Will need to iterate
 # over combinations of these. These are effectively the inputs.
 package_name = "boto3"
-requirement_string = "boto3"
+requirement_string = "boto3==1.18.12"
 platforms = []
 py_versions = []
 py_version_info = None
@@ -78,13 +79,25 @@ with req_tracker.get_requirement_tracker() as req_tracker_:
             user_requested=collected.user_requested,
         )
 
-        # TODO: This pulls in all dependencies recursively.
-        # We just want the top-level dependencies.
+        class TopLevelRequirementResolution(rl_resolvers.Resolution):
+            def __init__(self, package_name, provider, reporter):
+                super().__init__(provider=provider, reporter=reporter)
+                self.package_name = package_name
 
-        rl_resolver = RLResolver(provider, PipReporter())
-        result = rl_resolver.resolve(
-            collected.requirements, max_rounds=1_000_000
-        )
+            def _is_current_pin_satisfying(self, name, criterion):
+                """
+                Overrides rl_resolvers.Resolution._is_current_pin_satisfying to force satisfaction
+                for packages that aren't the package we care about. This should reduce the total
+                amount of packages that the resolver needs to download.
+                """
+                return (
+                    True if name != self.package_name else
+                    super()._is_current_pin_satisfying(name, criterion)
+                )
+
+        resolution = TopLevelRequirementResolution(package_name=package_name, provider=provider, reporter=PipReporter())
+        state = resolution.resolve(collected.requirements, max_rounds=2)
+        result = rl_resolvers._build_result(state)
 
         # Scrubs the results for the requirement info that's relevant to "package_name"
         direct_dependency_requirement_info = []
