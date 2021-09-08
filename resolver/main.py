@@ -48,6 +48,7 @@ install_command = InstallCommand(
 options, _ = install_command.parse_args([])
 pip_session = PipSession()
 
+# TODO: This seems to be where/how the platform and pyversion are supplied to the resolver.
 target_python = make_target_python(options)
 finder = install_command._build_package_finder(
     options=options,
@@ -84,7 +85,7 @@ with req_tracker.get_requirement_tracker() as req_tracker_:
             wheel_cache=None,
             use_user_site=False,
             ignore_installed=True,
-            ignore_requires_python=True,
+            ignore_requires_python=False,
             py_version_info=py_version_info,
         )
 
