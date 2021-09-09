@@ -1,5 +1,6 @@
 import logging
 import sys
+import contextlib
 
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.req_command import RequirementCommand
@@ -28,8 +29,9 @@ logger.addHandler(handler)
 
 # TODO: These will come into play at some point. Will need to iterate
 # over combinations of these. These are effectively the inputs.
-package_name = "boto3"
-requirement_string = "boto3==1.18.12"
+# Can we work from https://pypi.org/simple/pandas/ ?
+package_name = "pandas"
+requirement_string = "pandas==1.2.1"
 platforms = []
 py_versions = []
 py_version_info = None
@@ -45,7 +47,13 @@ requirement = install_req_from_req_string(
 install_command = InstallCommand(
     name="install", summary="Installs, but not really.", isolated=True
 )
-options, _ = install_command.parse_args([])
+
+install_command_args = []
+
+for platform in platforms:
+    install_command_args += ["--platform", platform]
+
+options, _ = install_command.parse_args(install_command_args)
 pip_session = PipSession()
 
 # TODO: This seems to be where/how the platform and pyversion are supplied to the resolver.
@@ -85,7 +93,7 @@ with req_tracker.get_requirement_tracker() as req_tracker_:
             wheel_cache=None,
             use_user_site=False,
             ignore_installed=True,
-            ignore_requires_python=True,
+            ignore_requires_python=False,
             py_version_info=py_version_info,
         )
 
@@ -154,6 +162,8 @@ with req_tracker.get_requirement_tracker() as req_tracker_:
             reporter=PipDebuggingReporter(),
         )
 
+        # The resolver should only need 2 rounds. One to download the latest package
+        # and one make a fake determination on the requirements of its requirements.
         state = resolution.resolve(collected.requirements, max_rounds=2)
 
         # Scrubs the results for the requirement info that's relevant to "package_name"
@@ -168,6 +178,7 @@ with req_tracker.get_requirement_tracker() as req_tracker_:
         # This is the point where this script can hand the resulting
         # data off to another process or slap it into a database of some sort.
         # TODO: What other metadata might be important apart from dep names/versions?
+        # TODO: What "extras" are available?
         from pprint import pprint
 
         pprint(direct_dependency_requirement_info)
