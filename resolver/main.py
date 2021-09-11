@@ -19,6 +19,7 @@ from pip._internal.utils import temp_dir, filetypes
 from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._internal.utils.unpacking import SUPPORTED_EXTENSIONS
+from pip._internal.cli.cmdoptions import make_target_python
 
 
 logger = logging.getLogger()
@@ -33,9 +34,12 @@ logger.addHandler(handler)
 package_name = "pandas"
 package_canonical_name = canonicalize_name(package_name)
 
-# TODO: Need a link collector
+# TODO: Need a link collector in order to iterate over all package links for a package.
 
-package_url = "https://files.pythonhosted.org/packages/8f/d3/d994f9347b42407adc04e58fdeb5e52013df14bcc4a678c5211ffd526ebd/pandas-1.2.5-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.whl#sha256=4bfbf62b00460f78a8bc4407112965c5ab44324f34551e8e1f4cac271a07706c"
+package_url = "https://files.pythonhosted.org/packages/8f/d3/d994f9347b42407adc04e58fdeb5e52013df14bcc4a678c5211ffd526ebd/pandas-1.2.5-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.whl"
+
+# TODO: This process doesn't seem to work for platform-independent packages.
+# package_url = "https://files.pythonhosted.org/packages/ab/5c/b38226740306fd73d0fea979d10ef0eda2c7956f4b59ada8675ec62edba7/pandas-1.2.5.tar.gz#sha256=14abb8ea73fce8aebbb1fb44bec809163f1c55241bcc1db91c2c780e97265033"
 package_link = Link(package_url)
 
 egg_info, ext = package_link.splitext()
@@ -43,17 +47,21 @@ package_version = _extract_version_from_fragment(
     egg_info, package_canonical_name,
 )
 
+if ext not in SUPPORTED_EXTENSIONS:
+    raise ValueError(f"Can't do {ext}, but should record it somewhere.")
+
 if ext == filetypes.WHEEL_EXTENSION:
     # If the package is a wheel, the filename contains additional
     # useful metadata about the package and its reportedly supported
     # plat/arch/OS/pyversion
     wheel = Wheel(package_link.filename)
-
-if ext not in SUPPORTED_EXTENSIONS:
-    raise ValueError(f"Can't do {ext}, but should record it somewhere.")
+    package_version = wheel.version
 
 #
-# Process Package Link
+# Process Package Link. A lot of the code between here and the next major
+# comment is boilerplate dependency injection. We need a preparer and a factory
+# to property download the package blob, extract it, and run setup.py and/or
+# parse the metadata.
 #
 
 install_command = InstallCommand(
@@ -61,6 +69,16 @@ install_command = InstallCommand(
 )
 
 options, _ = install_command.parse_args([])
+
+pip_session = PipSession()
+
+# finder is required when the package is not a wheel. Not sure why.
+finder = install_command._build_package_finder(
+    options=options,
+    session=pip_session,
+    target_python=make_target_python(options),
+    ignore_requires_python=options.ignore_requires_python,
+)
 
 with req_tracker.get_requirement_tracker() as req_tracker_:
     # TODO: Fix tempdir stuff
@@ -77,14 +95,14 @@ with req_tracker.get_requirement_tracker() as req_tracker_:
             temp_build_dir=temp_build_dir,
             options=options,
             req_tracker=req_tracker_,
-            session=PipSession(),
-            finder=None,
+            session=pip_session,
+            finder=finder,
             use_user_site=False,
             download_dir=temp_download_dir,
         )
 
         factory = Factory(
-            finder=None,
+            finder=finder,
             preparer=preparer,
             make_install_req=None,
             wheel_cache=None,
@@ -94,6 +112,10 @@ with req_tracker.get_requirement_tracker() as req_tracker_:
             ignore_requires_python=True,
             py_version_info=None,
         )
+
+        #
+        # Initializing this class downloads the file and parses the package's requirements
+        #
 
         candidate = LinkCandidate(
             link=package_link,
