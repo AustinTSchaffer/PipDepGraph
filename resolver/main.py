@@ -2,25 +2,24 @@ import contextlib
 import logging
 import sys
 
+from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.commands.install import InstallCommand
+from pip._internal.index.package_finder import _extract_version_from_fragment
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import req_tracker
-from pip._internal.index.package_finder import _extract_version_from_fragment
 from pip._internal.req.constructors import install_req_from_req_string
 from pip._internal.resolution.resolvelib.candidates import LinkCandidate
 from pip._internal.resolution.resolvelib.factory import Factory
 from pip._internal.resolution.resolvelib.provider import PipProvider
 from pip._internal.resolution.resolvelib.reporter import (PipDebuggingReporter,
                                                           PipReporter)
-from pip._internal.utils import temp_dir, filetypes
-from pip._vendor.packaging.version import Version
-from pip._vendor.packaging.utils import canonicalize_name
+from pip._internal.utils import filetypes, temp_dir
 from pip._internal.utils.unpacking import SUPPORTED_EXTENSIONS
-from pip._internal.cli.cmdoptions import make_target_python
-
+from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.version import Version
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)

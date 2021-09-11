@@ -1,6 +1,6 @@
+import contextlib
 import logging
 import sys
-import contextlib
 
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.req_command import RequirementCommand
