@@ -30,16 +30,24 @@ formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(messag
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-package_name = "pandas"
-package_canonical_name = canonicalize_name(package_name)
 
 # TODO: Need a link collector in order to iterate over all package links for a package.
 
 # Probably shouldn't yank the hash off the end of the wheel.
+package_name = "pandas"
 package_url = "https://files.pythonhosted.org/packages/8f/d3/d994f9347b42407adc04e58fdeb5e52013df14bcc4a678c5211ffd526ebd/pandas-1.2.5-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.whl"
 
-# FIXME: This process doesn't seem to work for platform-independent packages.
+# Windows test... Seems to work.
+# TODO: Is this script necessary, or would the other one that more natively uses "pip install" work better?
+#       Should I combine the pros and cons of each?
+# package_name = "numpy"
+# package_url = "https://files.pythonhosted.org/packages/26/2e/498c68b44f83d834fe3730b8a08d887ea23fdab51783a6ffa0c57d7dead8/numpy-1.21.0rc1-cp39-cp39-win32.whl#sha256=dcc194082d94c45fe8a005861cdce6ec33b51c1dccf2a7e6044b33038b82f579"
+
+# This process doesn't seem to work perfectly for platform-independent "sdist" (tarball/zip) packages when debugging. Do we care?
+# package_name = "pandas"
 # package_url = "https://files.pythonhosted.org/packages/ab/5c/b38226740306fd73d0fea979d10ef0eda2c7956f4b59ada8675ec62edba7/pandas-1.2.5.tar.gz#sha256=14abb8ea73fce8aebbb1fb44bec809163f1c55241bcc1db91c2c780e97265033"
+
+package_canonical_name = canonicalize_name(package_name)
 package_link = Link(package_url)
 
 egg_info, ext = package_link.splitext()
