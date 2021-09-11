@@ -36,9 +36,10 @@ package_canonical_name = canonicalize_name(package_name)
 
 # TODO: Need a link collector in order to iterate over all package links for a package.
 
+# Probably shouldn't yank the hash off the end of the wheel.
 package_url = "https://files.pythonhosted.org/packages/8f/d3/d994f9347b42407adc04e58fdeb5e52013df14bcc4a678c5211ffd526ebd/pandas-1.2.5-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.whl"
 
-# TODO: This process doesn't seem to work for platform-independent packages.
+# FIXME: This process doesn't seem to work for platform-independent packages.
 # package_url = "https://files.pythonhosted.org/packages/ab/5c/b38226740306fd73d0fea979d10ef0eda2c7956f4b59ada8675ec62edba7/pandas-1.2.5.tar.gz#sha256=14abb8ea73fce8aebbb1fb44bec809163f1c55241bcc1db91c2c780e97265033"
 package_link = Link(package_url)
 
